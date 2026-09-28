@@ -30,7 +30,7 @@ The main experiments study **C2S Gemma-2-2B at layers 10, 15, and 20**, with an 
 - **Sparse reconstructions preserve annotation performance.** Replacing gene representations with SAE reconstructions retains cell-type annotation accuracy on both the training-domain dataset and an external PBMC dataset.
 - **Depth introduces a trade-off.** Layer 20 provides the strongest aggregate reconstruction, while layer 10 distributes feature usage more evenly. Dictionaries remain broadly utilized, selective, and nearly nonredundant under the evaluated distribution shift.
 - **Biological specificity changes across layers.** Deeper features show clearer B-cell and NK-cell associations, including B-cell receptor complexes and NK-cell-mediated immunity. CD14 monocytes are an exception: deeper features emphasize shared antigen-presentation programs, helping diagnose confusion with dendritic cells.
-- **Interpretability and steering sensitivity differ across layers.** Strengthening target-associated features at layer 10 changes predictions substantially more than interventions at layer 20, despite the clearer biological associations of many deeper features. Suppression alone has little effect, and SAE reconstructions retain similar responsiveness to steering.
+- **Later-layer features steer early layers more effectively.** When applied at an early layer, features learned from later layers produce stronger steering toward target cell-type annotations than features learned from that early layer itself. This suggests that the richer biological concepts captured in later layers can guide predictions more effectively when used to intervene earlier in the model.
 
 
 ## Data and scope
@@ -47,7 +47,6 @@ The study focuses on **B cells, CD14 monocytes, and CD56 natural killer cells**.
 | [`src/train.py`](src/train.py) | SAE training on cached activation shards |
 | [`src/evaluate/`](src/evaluate/) | Reconstruction metrics, feature analysis, enrichment, and downstream tasks |
 | [`src/steer/`](src/steer/) | Feature selection and activation interventions for cell-type annotation |
-| [`presentations/`](presentations/) | Analysis scripts, figures, and experiment summaries |
 | [`results/`](results/) | Evaluation outputs and biological analyses |
 
 ## Getting started
