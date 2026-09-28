@@ -1,9 +1,5 @@
 # Project dependencies for Python >=3.12.
-# Install with: python -m pip install -r requirements.txt
-# Version constraints and extras below mirror pyproject.toml.
-# This lists project dependencies, not a full transitive dependency lock.
 
-# Declared project dependencies (including notebook and test tooling).
 accelerate>=1.0.0
 anndata>=0.12.10
 cell2sentence>=1.2.0
@@ -23,9 +19,6 @@ sentencepiece>=0.2.0
 torch>=2.11.0
 transformers>=5.5.3
 wandb>=0.25.1
-
-# Additional packages imported directly by source, analysis, and presentation scripts.
-# These currently have no project-defined version constraints.
 datasets
 numpy
 pandas
