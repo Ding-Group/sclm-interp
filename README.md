@@ -45,7 +45,7 @@ The findings concern the evaluated immune populations and model predictions. Fea
 | --- | --- |
 | [`configs/`](configs/) | YAML settings for data preparation, extraction, SAE training, evaluation, enrichment, and steering |
 | [`src/data/`](src/data/) | Single-cell preprocessing, cell-sentence construction, and activation extraction |
-| [`src/sae.py`](src/sae.py) | TopK, vanilla, and JumpReLU SAE implementations |
+| [`src/sae.py`](src/sae.py) | SAE implementations |
 | [`src/train.py`](src/train.py) | SAE training on cached activation shards |
 | [`src/evaluate/`](src/evaluate/) | Reconstruction metrics, feature analysis, enrichment, and downstream tasks |
 | [`src/steer/`](src/steer/) | Feature selection and activation interventions for cell-type annotation |
