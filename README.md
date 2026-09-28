@@ -64,7 +64,7 @@ python -m pip install -r requirements.txt
 
 Model extraction and training are configured for CUDA and bfloat16. The manuscript's experiments used an NVIDIA GB10 with CUDA 13.0; the dependency list includes CUDA 13 support for scvi-tools. Configure the model device, precision, and batch size for your hardware.
 
-The workflow is controlled by the YAML files in `configs/`. **Align the dataset paths, model ID, layer, and checkpoint paths before running each stage.** The checked-in configurations represent different experiments and are not a single preset reproducing all paper results. For example, extraction currently selects Gemma-2-27B at layer 18, while training selects its layer-15 activations.
+The workflow is controlled by the YAML files in `configs/`. **Align the dataset paths, model ID, layer, and checkpoint paths before running each stage.**
 
 ```bash
 # Prepare the purified PBMC dataset using configs/data_prep.yaml.
