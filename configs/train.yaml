@@ -1,0 +1,61 @@
+data:
+  # Train SAE on extracted activation splits produced by src/data/extraction.py.
+  data_path: "datasets/activations/C2S-Scale-Gemma-2-27B/layer15/purified-pbmc-subset-2"
+  dataset_name: "purified-pbmc-subset-2"
+  base_model: "gemma-27b"  # "pythia-1b", "gemma-2b", or "gemma-27b"
+  layer: 15
+  pooling_method: "last"  # "mean" or "last"
+  prompt_prefix: false
+  batch_size: 4096
+  num_workers: 8
+
+model:
+  sae_type: "topk"  # "vanilla", "topk", or "jumprelu"
+  # d_model is inferred from base_model when null (pythia-1b: 2048, gemma-2b: 2304, gemma-27b: 4608).
+  # Set explicitly to override (e.g. for other models).
+  d_model: null
+  expansion: 8
+  weight_tying: false
+
+  vanilla:
+    # Weights the normalized L1 penalty (per-sample L1 / ||x||_2); not
+    # comparable to the legacy unnormalized l1_coeff.
+    l1_coeff: 1.0e-3
+
+  topk:
+    k: 512
+    use_aux_loss: true
+    k_aux: 2048
+    aux_alpha: 0.03125
+    dead_rate_threshold: 1.0e-4
+
+  jumprelu:
+    threshold_init: 0.1
+    bandwidth: 0.001
+    sparsity_lambda: 1.0e-4
+
+training:
+  # Official openai/sparse_autoencoder settings: lr 1e-4, Adam eps 6.25e-10,
+  # no gradient clipping. Losses are variance-normalized (~0-1 range), so
+  # early_stopping_min_delta is meaningful at this scale.
+  lr: 1.0e-4
+  adam_eps: 6.25e-10
+  weight_decay: 0.0
+  gradient_clip_val: null
+  max_epochs: 50
+  max_steps: null
+  lr_scheduler: null
+  warmup_fraction: 0.0
+  log_every_n_steps: 500
+  early_stopping_patience: 5
+  early_stopping_min_delta: 1.0e-4
+
+infrastructure:
+  accelerator: auto
+  devices: 1
+  precision: "bf16-mixed"
+  wandb_enabled: true
+  wandb_entity: georgejtcaovii
+  wandb_project: sclm-interp
+  exp_tag: 28
+  seed: 42

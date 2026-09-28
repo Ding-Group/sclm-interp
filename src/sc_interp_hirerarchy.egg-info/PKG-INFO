@@ -1,0 +1,31 @@
+Metadata-Version: 2.4
+Name: sc-interp-hirerarchy
+Version: 0.1.0
+Summary: Add your description here
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: accelerate>=1.0.0
+Requires-Dist: anndata>=0.12.10
+Requires-Dist: cell2sentence>=1.2.0
+Requires-Dist: einops>=0.8.2
+Requires-Dist: h5py>=3.16.0
+Requires-Dist: huggingface-hub>=0.26.0
+Requires-Dist: ipykernel>=7.2.0
+Requires-Dist: jaxtyping>=0.3.9
+Requires-Dist: langchain>=1.2.15
+Requires-Dist: lightning>=2.6.1
+Requires-Dist: matplotlib>=3.10.8
+Requires-Dist: pytest>=9.0.3
+Requires-Dist: sae-lens>=6.39.0
+Requires-Dist: scanpy>=1.11.5
+Requires-Dist: scvi-tools[cuda13]>=1.5.0.post1
+Requires-Dist: sentencepiece>=0.2.0
+Requires-Dist: torch>=2.11.0
+Requires-Dist: transformers>=5.5.3
+Requires-Dist: wandb>=0.25.1
+
+# sc-Interp-Hirerarchy
+
+`
+code --extensions-dir "$HOME/.vscode/extensions"
+`

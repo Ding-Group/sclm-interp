@@ -1,0 +1,4 @@
+Below is a list of {gene_names} ordered by descending expression level in a single {organism} cell.
+Your task is to select one cell type to which this cell most likely belongs from the following candidate cell types:
+{cell_types}
+Make your choice in format 'Final Answer: Prediction'.

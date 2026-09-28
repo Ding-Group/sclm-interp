@@ -1,0 +1,39 @@
+# Project dependencies for Python >=3.12.
+# Install with: python -m pip install -r requirements.txt
+# Version constraints and extras below mirror pyproject.toml.
+# This lists project dependencies, not a full transitive dependency lock.
+
+# Declared project dependencies (including notebook and test tooling).
+accelerate>=1.0.0
+anndata>=0.12.10
+cell2sentence>=1.2.0
+einops>=0.8.2
+h5py>=3.16.0
+huggingface-hub>=0.26.0
+ipykernel>=7.2.0
+jaxtyping>=0.3.9
+langchain>=1.2.15
+lightning>=2.6.1
+matplotlib>=3.10.8
+pytest>=9.0.3
+sae-lens>=6.39.0
+scanpy>=1.11.5
+scvi-tools[cuda13]>=1.5.0.post1
+sentencepiece>=0.2.0
+torch>=2.11.0
+transformers>=5.5.3
+wandb>=0.25.1
+
+# Additional packages imported directly by source, analysis, and presentation scripts.
+# These currently have no project-defined version constraints.
+datasets
+numpy
+pandas
+plotly
+PyYAML
+requests
+safetensors
+scikit-learn
+scipy
+tqdm
+umap-learn

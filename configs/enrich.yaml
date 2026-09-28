@@ -1,0 +1,135 @@
+# Gene-set enrichment configuration for SAE feature gene sets.
+#
+# src/evaluate/enrich/enrich.py reads the per-feature gene sets written by
+# src/evaluate/gene_features.py, selects which features to enrich, and queries
+# one remote GO enrichment provider (ToppGene or g:Profiler).
+
+input:
+  # A src/evaluate/gene_features.py result directory:
+  #   results/gene_features/<sae_name>/<dataset_name>/<base_model_name>/
+  dir: "results/gene_features/layer15_topk_exp8_last_no_prefix_20/purified-pbmc-subset-2/C2S-Scale-Gemma-2-2B"
+
+  # Per-feature gene sets. Relative names resolve under input.dir.
+  feature_to_genes: null   # default: <input.dir>/feature_to_genes.jsonl
+
+  # Per-feature statistics used to rank features for select.mode=top_k.
+  feature_summary: null    # default: <input.dir>/feature_activation_summary.csv
+
+output:
+  # Results are written to <output.dir>/<sae_name>/<dataset_name>/<base_model_name>/,
+  # mirroring the trailing components of input.dir so both trees stay aligned.
+  dir: "results/enrich"
+
+  # Optional fixed subdirectory under output.dir. Leave null to mirror input.dir.
+  subdir: null
+
+  # Each run lands in its own numbered folder (1/, 2/, ...) under that directory,
+  # so enriching a different feature selection over the same dataset never
+  # overwrites an earlier run. Every folder holds a metadata.json recording the
+  # features it enriched, and runs.json alongside them indexes the lot.
+  #
+  # null reuses the folder of a run with an identical selection, and otherwise
+  # allocates the next free number. Set an integer to write into that folder
+  # explicitly, e.g. to add a second provider to run 2 or to redo it.
+  run: null
+
+  # Optional human-readable name for the run, recorded in metadata.json and
+  # runs.json. Useful for labelling a hand-picked feature list, e.g. "b_cells".
+  label: null
+
+enrich:
+  # Active provider. GO enrichment is queried from exactly one of these.
+  available_providers:
+    - "toppgene"   # remote ToppGene enrichment with Entrez symbol lookup/cache
+    - "gprofiler"  # remote g:Profiler over-representation analysis
+  provider: "gprofiler" # "toppgene" # "gprofiler" 
+
+  select:
+    # Which features to enrich. Enrichment costs one remote request per feature,
+    # so prefer top_k or an explicit list over "all".
+    #   "top_k"    the top_k features ranked by rank_by, best first
+    #   "features" only the feature IDs listed below, in the given order
+    #   "all"      every feature in feature_to_genes.jsonl
+    mode: "features"
+
+    # mode=top_k only. Number of features to enrich.
+    top_k: 100
+
+    # mode=top_k only. Column of feature_activation_summary.csv to rank by,
+    # descending. One of: n_genes, gene_fraction, total_activation,
+    # mean_activation_when_active, max_activation.
+    #
+    # mean_activation_when_active averages only the above-threshold activations,
+    # so it measures how hard a feature fires where it fires and carries no
+    # prevalence information -- ranking on it mixes near-dense features (firing
+    # on most of the vocabulary, then truncated to max_genes) in with focused
+    # ones. Rank by n_genes or gene_fraction to select on prevalence instead.
+    rank_by: "mean_activation_when_active"
+
+    # mode=features only. Accepts plain IDs, comma-separated IDs, and inclusive
+    # ranges, e.g. [0, 5, "9,12", "100-120"].
+    features: [4252, 17222, 4735, 5341, 18065, 14429, 1635, 15016, 17364, 17276, 9717, 16544, 3877, 15937, 13413]
+    # Layer 15
+    # [5475, 15750, 1565, 7819, 16415, 2239, 9693, 4835, 7692, 10065, 16827, 10342, 13260, 5227, 14765] # B
+    # [10373, 10907, 12837, 9496, 10387, 4977, 17625, 7175, 17342, 1001, 14089, 13925, 1843, 14743, 11490] # CD14
+
+    # [12445, 13289, 5898, 3423, 16521, 9584, 10379, 4078, 1160, 9572, 14883, 16095, 1891, 12973, 4742,]
+    # [16858, 12530, 5433, 12692, 5414, 2244, 1178, 11173, 13024, 7303, 10796, 3784, 17785, 3904, 5698] # CD14 Monocytes
+    # [2198, 5968, 1206, 8872, 16544, 17706, 7488, 5786, 10579, 11925, 150, 14302, 17339, 15310, 14884] # B cells
+    # [15265, 1146, 5465, 3765, 14784, 12795, 8607, 3724, 3259, 14059]
+    
+    # Layer 20
+    # [872, 2262, 18202, 803, 15435, 2491, 11930, 13246, 8607, 12795, 8058, 1866, 15226, 3259, 13987] # CD56 NK
+    # [17780, 16995, 9419, 18331, 16617, 833, 2098, 13458, 11741, 8399, 11481, 5600, 7668, 3998, 18418] # B cells
+    # [1146, 2397, 15265, 12201, 14784, 5465, 17613, 6905, 299, 473, 3187, 13551, 15694, 9413, 10216] # CD14 Monocytes
+  common:
+    output: null      # explicit output JSONL path; null = provider default name
+    min_genes: 3      # skip feature gene sets smaller than this
+
+    # Cap the gene set enriched per feature; null = no cap. Longer gene sets are
+    # truncated to their first max_genes genes rather than skipped, and
+    # gene_features.py writes every list sorted by descending activation, so the
+    # retained head is the genes the feature responds to most strongly. This
+    # keeps broad, high-activation features in the run while stopping their tail
+    # from diluting the enrichment into generic terms. Only min_genes can now
+    # disqualify a feature, so an empty go_terms means the query ran and found
+    # nothing; truncated features record n_genes_total and truncated=true.
+    max_genes: 750
+    overwrite: true   # false resumes an existing streamed output
+
+    # GO sources to query.
+    databases:
+      - "GO:BP"
+      - "GO:MF"
+      - "GO:CC"
+
+  toppgene:
+    # Remote over-representation analysis through ToppGene. Symbols are mapped
+    # to human Entrez IDs and cached in lookup_cache.
+    p_value: 0.05
+    correction: "FDR"       # "FDR" | "Bonferroni" | "none"
+    term_min_genes: 1
+    term_max_genes: 1500
+    max_results: 10
+    lookup_batch_size: 200
+    delay: 0.25
+    lookup_delay: 0.05
+    timeout: 60.0
+    include_term_genes: false
+    include_unmapped: false
+    lookup_cache: null      # default: <results_dir>/toppgene_symbol_lookup_cache.jsonl
+
+  gprofiler:
+    # Remote over-representation analysis through g:Profiler.
+    organism: "hsapiens"
+    fdr: 0.05
+    top_terms: 10
+
+    # Statistical background. null scores each gene set against every annotated
+    # gene in the genome (~20k), which overstates enrichment because a feature
+    # can only ever activate on the dataset gene vocabulary. true uses
+    # <input.dir>/genes.json, the vocabulary of the gene_features run that
+    # produced these gene sets; a string names another file (one symbol per
+    # line, or a JSON list), resolved under input.dir when relative.
+    background: true
+    delay: 0.25

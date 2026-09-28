@@ -1,0 +1,132 @@
+# Downstream-task evaluation configuration.
+#
+# Run:
+#   python src/evaluate/downstream_tasks/cell_type_annotation/cell_type_annotation.py
+#   python src/evaluate/downstream_tasks/cell_type_annotation/cell_type_annotation.py --mode reconstruct --max-examples 50
+#   python src/evaluate/downstream_tasks/cell_type_annotation/cell_type_annotation.py --model pythia --max-examples 50
+#   python src/evaluate/downstream_tasks/cell_type_annotation/cell_type_annotation.py --dataset datasets/c2s_datasets/pbmc-subset-test
+#   python src/evaluate/downstream_tasks/qa/cell_type_multiple_choice.py --mode base --split test --max-examples 50
+#   python src/evaluate/downstream_tasks/qa/cell_type_multiple_choice.py --mode reconstruct --split test --max-examples 50
+#   python src/evaluate/downstream_tasks/natural_language_interpretation/natural_language_interpretation.py --mode base --max-examples 10
+#   python src/evaluate/downstream_tasks/natural_language_interpretation/natural_language_interpretation.py --mode reconstruct --max-examples 10 --cells-per-prompt 2
+
+model:
+  # Choose the model variant before selecting the downstream task.
+  mode: "reconstruct"          # "base" | "reconstruct"
+  # Choose: gemma, gemma-2b, gemma-27b, pythia, pythia-1b, or a full HuggingFace model id.
+  base_model: "gemma-27b"
+  device: "auto"       # auto -> cuda if available, else cpu
+  dtype: "bfloat16"
+  # Gemma supports sdpa/eager/flash_attention_2. Pythia ignores this when null.
+  attn_implementation: "sdpa"
+  # Results go under <output_dir>/<task>/base/... for base mode, or
+  # <output_dir>/<task>/<reconstruct.name>/... for reconstruct mode.
+  output_dir: "results"
+  base_output_name: "base"
+  reconstruct:
+    name: "gemma_27b_layer15_topk512_last_no_prefix_reconstruct_rebuild_ep10"
+    interventions:
+      - name: "layer15_topk"
+        layer: 15
+        checkpoint:
+          path: "checkpoints/gemma-27b/layer15_topk_exp8_last_no_prefix_28/gemma-27b-layer15-last-topk-sae-epoch009-step7470.ckpt"
+          sae_type: "topk"
+        # "model" places the SAE on the same device selected for the base model.
+        sae_device: "model"
+
+cell_type_annotation:
+  data:
+    c2s_dataset_dir: "datasets/c2s_datasets/pbmc-subset-full"
+    split: "train"       # train, val, or test
+    cell_type_column: "cell_type"
+    max_examples: null   # null = full split; set an int for a quick run
+    organism_column: null
+    default_organism: "Homo sapiens"
+
+  inference:
+    max_new_tokens: 32
+    temperature: 0.0
+    prompt_prefix: true
+    prompt_template_path: "src/prompts/cell_type_annotation_template.txt"
+
+  scoring:
+    # JSON mapping gold cell-type labels to acceptable generated answers.
+    # Set to null to score only with the default gold-label matcher.
+    acceptable_answers_path: "src/evaluate/downstream_tasks/cell_type_annotation/cell_type_acceptable_answers.json"
+
+  output:
+    save_predictions: true
+    include_prompt: false
+
+cell_type_multiple_choice:
+  data:
+    qa_dataset_dir: "datasets/qas/purified-pbmc-subset-2-cell-type-mcq"
+    split: "train"       # train, val, or test
+    max_examples: null  # null = full split; set an int for a quick run
+    prompt_column: "prompt"
+    answer_choice_column: "answer_choice"
+    gold_cell_type_column: "gold_cell_type"
+    choices_column: "choices"
+    choice_labels_column: "choice_labels"
+    gene_names_column: "gene_names"
+    gene_sentence_column: "gene_sentence"
+
+  inference:
+    # The C2S base model is not instruction-tuned for free-form MCQ answers.
+    # Use likelihood scoring over candidate cell-type continuations by default.
+    max_new_tokens: 32
+    temperature: 0.0
+    stop_at_control_token: true
+
+  scoring:
+    method: "generate"  # "likelihood" | "generate"
+    prompt_template_path: "src/prompts/cell_type_annotation_template.txt"
+    acceptable_answers_path: "src/evaluate/downstream_tasks/cell_type_annotation/cell_type_acceptable_answers.json"
+
+  output:
+    save_predictions: true
+    include_prompt: false
+
+natural_language_interpretation:
+  data:
+    c2s_dataset_dir: "datasets/c2s_datasets/purified-pbmc-subset-2"
+    split: "test"       # train, val, or test
+    # Number of prompt groups to generate; null = all groups in the split.
+    max_examples: 50
+    # The original tutorial demonstrates 5-cell prompts. Use 1 or 2 here for
+    # compact qualitative downstream examples.
+    cells_per_prompt: 2
+    # Number of top ordered genes extracted from each full cell_sentence before
+    # formatting the interpretation prompt.
+    num_genes: 200
+    drop_last: false
+    # Cells are drawn by a seeded permutation of the whole split (see
+    # inference.seed) rather than taken in dataset order, so a run is a random
+    # draw instead of a fixed leading slice, and changing the seed gives an
+    # independent draw. A shorter run is a prefix of a longer one at the same
+    # seed. Set false to read cells in dataset order instead.
+    shuffle_cells: true
+    cell_sentence_column: "cell_sentence"
+    cell_name_column: "cell_name"
+    cell_type_column: "cell_type"
+    organism_column: null
+    default_organism: "Homo sapiens"
+
+  inference:
+    max_new_tokens: 1024
+    temperature: 0.7
+    do_sample: true
+    top_k: 30
+    top_p: 0.9
+    stop_at_control_token: true
+    # Sampling is on, so a seed is required for reproducible runs. Each prompt
+    # group is seeded with seed+group_index, so a base run and a reconstruct run
+    # share sampling noise and differences are attributable to the intervention.
+    # Set to null (or pass --seed -1) to opt out.
+    seed: 42
+    prompt_prefix: true
+    prompt_template_path: "src/prompts/natural_language_interpretation.txt"
+
+  output:
+    save_predictions: true
+    include_prompt: true

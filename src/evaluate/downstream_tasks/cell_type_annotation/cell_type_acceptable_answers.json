@@ -1,0 +1,188 @@
+{
+  "description": "Accepted answer aliases for base-model cell-type annotation scoring. Keys are gold cell-type labels; values are strings that should count as correct when found in the generated output after normalized token matching.",
+  "answers": {
+    "b_cells": [
+      "B cells",
+      "B cell",
+      "B lymphocytes",
+      "B lymphocyte"
+    ],
+    "cd56_nk": [
+      "CD56 NK cells",
+      "CD56 NK cell",
+      "CD56-positive NK cells",
+      "CD56-positive NK cell",
+      "CD56 natural killer cells",
+      "CD56 natural killer cell",
+      "NK cells",
+      "NK cell",
+      "natural killer cells",
+      "natural killer cell"
+    ],
+    "cd14_monocytes": [
+      "CD14 monocytes",
+      "CD14 monocyte",
+      "CD14+ monocytes",
+      "CD14+ monocyte",
+      "CD14-positive monocytes",
+      "CD14-positive monocyte",
+      "classical monocytes",
+      "classical monocyte",
+      "monocytes",
+      "monocyte"
+    ],
+    "naive_t": [
+      "naive T cells",
+      "naive T cell",
+      "naive T lymphocytes",
+      "naive T lymphocyte",
+      "CD4 T cells",
+      "CD4 T cell",
+      "CD4-positive T cells",
+      "CD4-positive T cell",
+      "CD4-positive, alpha-beta T cells",
+      "CD4-positive, alpha-beta T cell",
+      "naive CD4 T cells",
+      "naive CD4 T cell",
+      "naive CD4-positive T cells",
+      "naive CD4-positive T cell",
+      "naive thymus-derived CD4-positive, alpha-beta T cells",
+      "naive thymus-derived CD4-positive, alpha-beta T cell",
+      "naive CD8 T cells",
+      "naive CD8 T cell",
+      "T naive cells",
+      "T naive cell",
+      "Tnaive cells",
+      "Tnaive cell"
+    ],
+    "memory_t": [
+      "memory T cells",
+      "memory T cell",
+      "memory T lymphocytes",
+      "memory T lymphocyte",
+      "CD4 T cells",
+      "CD4 T cell",
+      "CD4-positive T cells",
+      "CD4-positive T cell",
+      "CD4-positive, alpha-beta T cells",
+      "CD4-positive, alpha-beta T cell",
+      "memory CD4 T cells",
+      "memory CD4 T cell",
+      "CD4 memory T cells",
+      "CD4 memory T cell",
+      "CD4-positive helper T cells",
+      "CD4-positive helper T cell",
+      "memory CD8 T cells",
+      "memory CD8 T cell",
+      "central memory T cells",
+      "central memory T cell",
+      "effector memory T cells",
+      "effector memory T cell",
+      "T memory cells",
+      "T memory cell"
+    ],
+    "cytotoxic_t": [
+      "cytotoxic T cells",
+      "cytotoxic T cell",
+      "cytotoxic T lymphocytes",
+      "cytotoxic T lymphocyte",
+      "CD8 T cells",
+      "CD8 T cell",
+      "CD8-positive T cells",
+      "CD8-positive T cell",
+      "CD8-positive, alpha-beta T cells",
+      "CD8-positive, alpha-beta T cell",
+      "CD8-positive, alpha-beta cytotoxic T cells",
+      "CD8-positive, alpha-beta cytotoxic T cell",
+      "CD8 alpha-beta T cells",
+      "CD8 alpha-beta T cell",
+      "CTLs",
+      "CTL",
+      "killer T cells",
+      "killer T cell"
+    ],
+    "B cells": [
+      "B cells",
+      "B cell",
+      "B lymphocytes",
+      "B lymphocyte"
+    ],
+    "CD14+ Monocytes": [
+      "CD14 monocytes",
+      "CD14 monocyte",
+      "CD14+ monocytes",
+      "CD14+ monocyte",
+      "CD14-positive monocytes",
+      "CD14-positive monocyte",
+      "classical monocytes",
+      "classical monocyte",
+      "monocytes",
+      "monocyte"
+    ],
+    "CD4 T cells": [
+      "CD4 T cells",
+      "CD4 T cell",
+      "CD4-positive T cells",
+      "CD4-positive T cell",
+      "helper T cells",
+      "helper T cell",
+      "T helper cells",
+      "T helper cell"
+    ],
+    "CD8 T cells": [
+      "CD8 T cells",
+      "CD8 T cell",
+      "CD8-positive T cells",
+      "CD8-positive T cell",
+      "cytotoxic T cells",
+      "cytotoxic T cell"
+    ],
+    "Dendritic Cells": [
+      "dendritic cells",
+      "dendritic cell",
+      "DCs",
+      "DC"
+    ],
+    "FCGR3A+ Monocytes": [
+      "FCGR3A monocytes",
+      "FCGR3A monocyte",
+      "FCGR3A+ monocytes",
+      "FCGR3A+ monocyte",
+      "CD16 monocytes",
+      "CD16 monocyte",
+      "nonclassical monocytes",
+      "nonclassical monocyte"
+    ],
+    "Megakaryocytes": [
+      "megakaryocytes",
+      "megakaryocyte"
+    ],
+    "NK cells": [
+      "NK cells",
+      "NK cell",
+      "natural killer cells",
+      "natural killer cell"
+    ],
+    "Other": [
+      "other",
+      "unknown",
+      "unassigned"
+    ],
+    "DC1": [
+      "DC1",
+      "dendritic cell 1",
+      "dendritic cells 1",
+      "conventional dendritic cell 1",
+      "conventional dendritic cells 1",
+      "cDC1"
+    ],
+    "DC2": [
+      "DC2",
+      "dendritic cell 2",
+      "dendritic cells 2",
+      "conventional dendritic cell 2",
+      "conventional dendritic cells 2",
+      "cDC2"
+    ]
+  }
+}

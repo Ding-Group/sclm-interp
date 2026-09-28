@@ -1,0 +1,3 @@
+The following is a list of gene names ordered by descending expression level in a {organism} cell. Your task is to give the cell type which this cell belongs to based on its gene expression.
+Cell sentence: {cell_sentence}.
+The cell type corresponding to these genes is:

@@ -1,0 +1,40 @@
+# Cell-type multiple-choice QA dataset generation.
+#
+# Run:
+#   python -m src.evaluate.downstream_tasks.qa.generate
+#   python -m src.evaluate.downstream_tasks.qa.generate --config configs/qa_generation.yaml
+#   python -m src.evaluate.downstream_tasks.qa.generate --dataset datasets/c2s_datasets/purified-pbmc-subset-2
+#   python -m src.evaluate.downstream_tasks.qa.generate --splits train val test --max-examples 50
+
+seed: 1234
+
+data:
+  # Prepared C2S dataset folder containing data_train, data_val, and data_test.
+  c2s_dataset_dir: "datasets/c2s_datasets/purified-pbmc-subset-2"
+  splits: ["train", "val", "test"]
+  candidate_pool_splits: ["train", "val", "test"]
+  cell_sentence_column: "cell_sentence"
+  cell_type_column: "cell_type"
+  cell_name_column: "cell_name"
+  # null = all examples per split.
+  max_examples_per_split: null
+
+question:
+  prompt_template_path: "src/prompts/cell_type_multiple_choice_template.txt"
+  organism: "Homo sapiens"
+  # Number of answer choices per question. If fewer unique cell types exist, all
+  # available cell types are used. Set null to include every candidate cell type.
+  num_choices: 5
+  num_genes: 200
+  gene_separator: ", "
+  shuffle_choices: true
+  # Labels used to prefix choices in the rendered prompt and to record which
+  # option contains the gold cell type. Example: "B" for "B. cd56_nk".
+  choice_labels: ["A", "B", "C", "D", "E", "F", "G", "H"]
+
+output:
+  output_dir: "datasets/qas"
+  # null -> <source-dataset-name>-cell-type-mcq
+  output_name: null
+  save_jsonl: true
+  overwrite: true

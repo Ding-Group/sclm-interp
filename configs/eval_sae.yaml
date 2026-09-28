@@ -1,0 +1,97 @@
+checkpoint:
+  path: "checkpoints/gemma-2b/layer15_topk_exp4_last_no_prefix_32/gemma-2b-layer15-last-topk-sae-epoch009-step7490.ckpt"
+  # Names the checkpoint level of the result path:
+  #   results/<eval>/<experiment>/<name>/<dataset>/
+  # null = the checkpoint file's own stem (last.ckpt -> "last"). Set it to keep
+  # long Lightning filenames out of the path, e.g. name: "first-epoch". With
+  # checkpoint.dir instead of checkpoint.path, it also selects which file to load.
+  name: "epoch-10"
+  layer: 15
+  pooling: "last"
+
+data:
+  dir: "datasets/activations/C2S-Scale-Gemma-2-2B/layer15/purified-pbmc-subset-2/gene_activations_last_no_prefix"
+  max_shards: null  # null = all shards; set to a small int for quick runs
+
+model:
+  sae_type: "topk"  # "topk" | "vanilla" | "jumprelu"
+
+output:
+  seed: 42
+
+infrastructure:
+  device: auto      # "auto" | "cuda" | "cpu"
+
+evaluations:
+  feature_analysis:
+    enabled: true
+    data:
+      # Splits to analyze; each is written to
+      # results/feature_analysis/<experiment>/<checkpoint>/<dataset>/<split>/.
+      splits: [data_train, data_test, data_val]
+      # Also pool all splits into a single overall assessment written to
+      # results/feature_analysis/<experiment>/<checkpoint>/<dataset>/combined/.
+      combined: true
+    eval:
+      dead_threshold: 1.0e-4
+      universal_threshold: 0.5
+      common_threshold: 0.05
+      batch_size: 8192
+      max_samples: null
+      compute_feature_similarity: true
+      decoder_neighbor_top_k: 5
+      decoder_chunk_size: 256
+      similar_threshold: 0.80
+      duplicate_threshold: 0.95
+      top_similarity_pairs: 50
+
+  # Reconstruction error, sparsity, and variance explained. Sweeps splits and,
+  # via checkpoint.paths, several checkpoints at once.
+  reconstruction:
+    enabled: true
+    data:
+      # Splits to evaluate; each is written to
+      # results/reconstruction/<experiment>/<checkpoint>/<dataset>/<split>/.
+      splits: [data_train, data_test, data_val]
+      # Also pool all splits into a single overall assessment written to
+      # results/reconstruction/<experiment>/<checkpoint>/<dataset>/combined/
+      # (needs at least two splits).
+      combined: true
+      # Extra held-out activation directories, reported separately from the
+      # splits above and excluded from the pooling. Paths or {name, dir} maps.
+      unseen_dirs: null
+      max_samples: null
+      max_unseen_samples: null
+    eval:
+      batch_size: 8192
+
+  pca:
+    enabled: true
+    data:
+      split: data_train
+      max_samples: null
+    pca:
+      n_components: 50
+      center: true
+    eval:
+      batch_size: 8192
+      compute_activation_correlations: true
+      top_features_per_component: 50
+
+  # Head-to-head SAE vs PCA variance explained, in one combined figure.
+  pca_vs_sae:
+    enabled: true
+    data:
+      split: data_test
+      max_samples: null
+    eval:
+      batch_size: 8192
+      # Directions each method may spend per token: PCA rank-k (one global
+      # subspace) versus SAE top-j (chosen per row). Clamped to d_model.
+      ranks: [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+      # Optional extra cap on the largest budget; null uses max(ranks).
+      max_rank: null
+      # Leading PCs used for the decoder-overlap panel.
+      overlap_components: 50
+      # Random unit vectors defining the overlap null distribution.
+      null_samples: 4096

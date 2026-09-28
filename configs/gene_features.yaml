@@ -1,0 +1,48 @@
+# Map pre-extracted gene vocabulary embeddings to activated SAE features.
+#
+# Run:
+#   .venv/bin/python src/evaluate/gene_features.py
+
+checkpoint:
+  path: "checkpoints/gemma-27b/layer15_topk_exp8_last_no_prefix_28/gemma-27b-layer15-last-topk-sae-epoch009-step7470.ckpt"
+  # null infers TopK/Vanilla/JumpReLU from checkpoint state and metadata.
+  sae_type: null
+
+vocab:
+  # Directory produced by src/data/extraction.py in vocab mode.
+  dir: "datasets/vocabs/C2S-Scale-Gemma-2-27B/layer15/purified-pbmc-subset-2"
+  pooling: "last"  # loads vocab_<pooling>.safetensors
+  # Optional vocabulary prefix for smoke tests; null processes every gene.
+  limit: null
+
+filter:
+  # Keep SAE feature values strictly greater than this magnitude.
+  threshold: 5.0
+  # Optional cap in gene_to_features.jsonl and feature_to_genes.jsonl only.
+  # The NPZ always retains every post-threshold activation.
+  top_k: null
+
+infrastructure:
+  device: auto  # "auto" | "cpu" | "cuda"
+  batch_size: 512
+
+output:
+  # Results are written to <dir>/<sae_name>/<dataset_name>/<base_model_name>/.
+  dir: "results/gene_features_27b"
+  # null values are inferred from the vocabulary path first, then the
+  # checkpoint's directory name and recorded training dataset.
+  sae_name: null
+  dataset_name: null
+  base_model_name: null
+  # Also save the inverse feature -> genes lookup used by enrichment workflows.
+  write_inverse: true
+
+figures:
+  # Write tidy CSV summaries plus compact PNG diagnostics under figures/.
+  # Existing results can be regenerated with --figures-only --results-dir <dir>.
+  generate: true
+  top_n: 30
+  bins: 60
+  dpi: 180
+  # Number of globally strongest gene-feature pairs retained as a plotting table.
+  top_pairs: 1000

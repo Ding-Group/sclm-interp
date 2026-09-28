@@ -1,0 +1,221 @@
+# SAE feature-steering configuration.
+#
+# Run either entry point:
+#   python src/steer/sae_steer_inference.py --config configs/steer.yaml
+#   python src/steer/cell_type_annotation/cell_type_annotation.py --config configs/steer.yaml
+#
+# Run the same features as either steered model without editing this file:
+#   python src/steer/sae_steer_inference.py --steer-base activations
+#   python src/steer/sae_steer_inference.py --steer-base reconstruction
+#
+# Steer two sets in opposite directions from the command line:
+#   python src/steer/sae_steer_inference.py \
+#     --up-features 1146 2397 5465 --down-features 9419 16995 18331 \
+#     --up-alpha 1.0 --down-alpha 0.99
+#
+# Steer by a fixed magnitude instead of a fraction of each activation:
+#   python src/steer/sae_steer_inference.py --magnitude 30
+#   python src/steer/sae_steer_inference.py --up-magnitude 40 25 10
+
+model:
+  # gemma, gemma-2b, gemma-27b, pythia, pythia-1b, or a HuggingFace model id.
+  base_model: "gemma-2b"
+  device: "auto"
+  dtype: "bfloat16"
+  attn_implementation: "sdpa"
+  # Steering runs are namespaced under <output_dir>/steer/.
+  output_dir: "results"
+
+  steer:
+    # Names this steering run: results are written under
+    # <output_dir>/steer/cell_type_annotation/<name>/.
+    name: "gemma_2b_layer10_features_steer_down_except_cd14_99"
+    # Which activations the steered vector is written on top of. Set it here
+    # for every intervention, or per intervention below. The two values are two
+    # different steered models:
+    #
+    #   activations     Additive steering on the base activations. The
+    #                   base-model hidden state is kept and only the selected
+    #                   features' own contribution to it is rescaled:
+    #                     h + alpha * (acts[:, features] @ w_dec[features])
+    #                   Nothing is reconstructed, so alpha 0 is an exact no-op
+    #                   and the SAE's reconstruction error never reaches the
+    #                   residual stream.
+    #
+    #   reconstruction  Steering with reconstructed activations. The hidden
+    #                   state is replaced by the SAE reconstruction carrying
+    #                   the same rescaling:
+    #                     reconstruction_sae(h) + alpha * (acts[:, features] @ w_dec[features])
+    #                   Reconstruction uses reconstruction_checkpoint; acts and
+    #                   w_dec still come from intervene_checkpoint. Thus
+    #                   alpha 0 is the plain reconstruction, not the base model.
+    # 
+    # A reconstruction run is written to "<name>_recon" so it cannot
+    # overwrite the activations run configured under the same name.
+    base: "activations"
+    evaluation:
+      # Nothing here scores the run against a class: what the steering did is
+      # the rows of changed_predictions.jsonl, and every feature group says
+      # which way it is pushed, so there is no run-level mode either.
+      #
+      # Also generate a baseline answer per cell for before/after comparison.
+      # Doubles runtime; set false to score the steered generations only.
+      baseline_generation: true
+      # Which model that baseline answer comes from.
+      #   auto            match the steering base: the base model for
+      #                   "activations", the unsteered reconstruction for
+      #                   "reconstruction". The measured difference is then the
+      #                   steering alone in both cases.
+      #   base_model      always the untouched base model. On a reconstruction
+      #                   run this folds the SAE's reconstruction error into the
+      #                   measured effect, which is what you want only if you
+      #                   are asking how far the whole SAE-mediated model moves.
+      #   reconstruction  the unsteered SAE reconstruction (alpha 0). Requires
+      #                   an intervention with base: "reconstruction".
+      baseline: "auto"
+    interventions:
+      - layer: 10
+        # Overrides model.steer.base for this intervention only.
+        # base: "reconstruction"
+        intervene_checkpoint:
+          path: "checkpoints/gemma-2b/layer10_topk_exp8_last_no_prefix_22/gemma-2b-layer10-last-topk-sae-epoch009-step7490.ckpt"
+          sae_type: "topk"
+        # SAE used only to reconstruct this layer (including the unsteered
+        # reconstruction baseline). Omit or set null to reuse intervene_checkpoint.
+        # Keep this at layer 10 while changing intervene_checkpoint and its feature
+        # indices below to steer using another layer's decoder directions.
+        reconstruction_checkpoint:
+          path: "checkpoints/gemma-2b/layer10_topk_exp8_last_no_prefix_22/gemma-2b-layer10-last-topk-sae-epoch009-step7490.ckpt"
+          sae_type: "topk"
+        sae_device: "model"
+
+        # Features are steered in groups, each with its own direction,
+        # strength, and optional name. No feature may appear in two groups.
+        #
+        # A group says how hard it pushes in one of two ways, and "scaling"
+        # names which one is in force. Writing "magnitude:" instead of
+        # "alpha:" selects additive scaling on its own, so a fixed magnitude is
+        # never read as a fraction by accident.
+        #
+        #   scaling: fraction   (default)  alpha, a fraction of each feature's
+        #     own activation at each steered token, so relative feature
+        #     strengths come from the cell itself: an up group adds that
+        #     fraction, a down group subtracts it, and 1.0 down removes the
+        #     group's contribution exactly when the feature and reconstruction
+        #     SAEs are the same. Alpha 0 is an exact no-op under
+        #     base: "activations", and the plain SAE reconstruction under
+        #     base: "reconstruction". A feature that does not fire at a token
+        #     gets no push there, so a feature that is off in the steered cells
+        #     cannot be steered this way at all.
+        #
+        #   scaling: additive             magnitude, a fixed amount added (up)
+        #     or subtracted (down) at every steered token whether or not the
+        #     feature fires, in activation units -- size it against
+        #     mean_activation_when_active in the delivery diagnostics. This is
+        #     the knob for a feature the fractional form cannot move.
+        #
+        # Either takes one number for the whole group, or a list with one
+        # number per feature matched to "features" in the order it is written:
+        #
+        #   up:
+        #     features: [1146, 2397, 5465]
+        #     magnitude: 30                 # 1. one multiplier for all of them
+        #   down:
+        #     features: [9419, 16995, 18331]
+        #     magnitude: [40, 25, 10]       # 2. one per feature, in order
+        #
+        # The sign always comes from the direction, never from the numbers, and
+        # groups of either scaling may be mixed in one intervention. Every group
+        # needs a strength, from itself or from an "alpha:"/"magnitude:" set on
+        # the intervention or on model.steer; a group that means to steer
+        # nothing has to say "alpha: 0" outright.
+        #
+        # Three forms:
+        #
+        # Form 1 -- one set, with its own direction. Zero-based SAE latent
+        # feature indices:
+        #
+        # direction: down
+        # features: [9419,16995,18331,16617,5600]
+        #   layer_20 b_cells: [17780,833,2098,13458,11741]
+        #                     [9419,16995,18331,16617,5600]
+        #   layer_20 cd14   : [1146,2397,5465,17613,15694]
+        #                     [12201,6905,14784,473,15265]
+        #   layer_10 cd14   : [16858,5414,12530,5433,12692]
+        #   layer_10 b_cells: [2198,3416,7488,14302,15020]
+        #
+        # Form 2 -- two sets in opposite directions (below). Each takes a bare
+        # feature list or a mapping with its own alpha and name.
+        #
+        # Form 3 -- any number of groups, each naming its own direction:
+        #
+        # groups:
+        #   - name: "cd14_markers"
+        #     direction: up
+        #     features: [1146,2397,5465,17613,15694]
+        #     alpha: 1.0
+        #   - name: "b_cell_markers"
+        #     direction: down
+        #     features: [9419,16995,18331,16617,5600]
+        #     magnitude: [40,25,10,10,5]
+        # up: 
+        #   name: "cd56_markers"
+        #   features: [12795,8607,3724,3259,14059]
+        #   magnitude: 30            # same push on every feature, additively
+        #   # magnitude: [40,30,25,15,10]   # or one per feature, in order above
+        # down:
+        #   name: "cd14_markers"
+        #   features: [15625,1146,5465, 3765, 14784]
+        #   alpha: 0.99
+
+        # up:
+        #   name: "b_cell_markers"
+        #   features: [2198, 5968, 1206, 8872, 16544, 17706, 7488, 5786, 10579, 11925, 150, 14302, 17339, 15310, 14884]
+        #   magnitude: 20             # same push on every feature, additively
+        #   # magnitude: [40,30,25,15,10]   # or one per feature, in order above
+
+        # up:
+        #   name: "b_cell_markers"
+        #   features: [5475, 15750, 1565, 7819, 16415, 2239, 9693, 4835, 7692, 10065, 16827, 10342, 13260, 5227, 14765]
+        #   magnitude: 30             # same push on every feature, additively
+        #   # magnitude: [40,30,25,15,10]   # or one per feature, in order above
+
+        # down:
+        #   name: "b_cell_exclude_markers"
+        #   features: [16858, 12530, 5433, 12692, 5414, 2244, 1178, 11173, 13024, 7303, 10796, 3784, 17785, 3904, 5698, 12445, 13289, 5898, 3423, 16521, 9584, 10379, 4078, 1160, 9572, 14883, 16095, 1891, 12973, 4742]
+        #   alpha: 0.99
+
+        down:
+          name: "cd14_exclude_markers"
+          features: [2198, 5968, 1206, 8872, 16544, 17706, 7488, 5786, 10579, 11925, 150, 14302, 17339, 15310, 14884, 12445, 13289, 5898, 3423, 16521, 9584, 10379, 4078, 1160, 9572, 14883, 16095, 1891, 12973, 4742]
+          alpha: 0.99
+
+        # down:
+        #   name: "cd56_exclude_markers"
+        #   features: [2198, 5968, 1206, 8872, 16544, 17706, 7488, 5786, 10579, 11925, 150, 14302, 17339, 15310, 14884, 16858, 12530, 5433, 12692, 5414, 2244, 1178, 11173, 13024, 7303, 10796, 3784, 17785, 3904, 5698]
+        #   alpha: 0.99
+
+cell_type_annotation:
+  data:
+    c2s_dataset_dir: "datasets/c2s_datasets/pbmc-subset-full"
+    split: "test"
+    cell_type_column: "cell_type"
+    max_examples: null
+    organism_column: null
+    default_organism: "Homo sapiens"
+
+  inference:
+    max_new_tokens: 32
+    temperature: 0.0
+    # Generation needs the instruction template so the model answers with a
+    # cell type. Note the configured SAE checkpoint was trained on no-prefix
+    # activations, so the run prints a prompt_prefix mismatch warning.
+    prompt_prefix: true
+    prompt_template_path: "src/prompts/cell_type_annotation_template.txt"
+
+  scoring:
+    acceptable_answers_path: "src/evaluate/downstream_tasks/cell_type_annotation/cell_type_acceptable_answers.json"
+
+  output:
+    save_predictions: true
+    include_prompt: false

@@ -1,0 +1,68 @@
+# Unified C2S extraction configuration
+# Used by src/data/extraction.py for activation and vocab extraction.
+#
+# Run:
+#   python -m src.data.extraction --model gemma               # both modes (default)
+#   python -m src.data.extraction --model pythia              # both modes (default)
+#   python -m src.data.extraction --model gemma --mode activations
+#   python -m src.data.extraction --model gemma --mode vocab
+#   python -m src.data.extraction --model gemma --dataset datasets/c2s_datasets/purified-pbmc-subset-test
+
+# ── Mode (optional) ───────────────────────────────────────────────────────────
+# Omit (or comment out) to run both activations and vocab extraction.
+# mode: activations   # only extract per-cell activations using extraction.mode
+# mode: vocab         # only extract vocabulary gene embeddings
+
+# ── Per-model settings ────────────────────────────────────────────────────────
+# layer_idx lives here because Gemma and Pythia use different representative layers.
+models:
+  gemma:
+    model_id: "vandijklab/C2S-Scale-Gemma-2-27B"
+    device: "cuda"
+    dtype: "bfloat16"
+    attn_implementation: "sdpa"   # sdpa (recommended), eager, or flash_attention_2
+    layer_idx: 18                 # valid 0-25 for 2B; 0-45 for 27B
+
+  pythia:
+    model_id: "vandijklab/C2S-Scale-Pythia-1b-pt"
+    device: "cuda"
+    dtype: "bfloat16"
+    layer_idx: 6                 # valid 0-15
+
+# ── Shared inference settings ─────────────────────────────────────────────────
+inference:
+  max_new_tokens: 64
+  temperature: 0.0               # 0.0 = greedy decoding
+  prompt_prefix: false           # true = full cell-type prompt; false = bare gene list
+  prompt_template_path: "src/prompts/cell_type_annotation_template.txt"
+
+# ── Shared extraction settings ────────────────────────────────────────────────
+extraction:
+  mode: "gene"                   # "gene" = pool gene states; "cell" = final cell-sentence state
+  gene_pooling: "last"            # "all" or "last" — used only when mode is "gene"
+  max_seq_len: null               # max tokens before skipping a cell; null = no limit
+
+# ── Output paths ─────────────────────────────────────────────────────────────
+output:
+  # activations mode:
+  #   gene: <activations_dir>/<model_name>/layer{L}/<dataset_name>/gene_activations_{pool}_{prefix}/<split_name>/
+  #   cell: <cells_dir>/<model_name>/layer{L}/<dataset_name>/cell_activations_last_{prefix}/<split_name>/
+  # Cell shards contain aligned "activations" and "cell_type_ids" tensors;
+  # each split directory also contains cell_types.json mapping IDs to labels.
+  activations_dir: "datasets/activations"
+  cells_dir: "datasets/cells"
+  # vocab mode:       <vocabs_dir>/<model_name>/layer{L}/<dataset_name>/
+  vocabs_dir: "datasets/vocabs"
+
+# ── Datasets to process ───────────────────────────────────────────────────────
+# Applies to both modes. Override with --dataset on the command line.
+# Each entry must be a folder produced by src/data/data_prep.py and must contain:
+#   data_train/
+#   data_val/
+#   data_test/
+#   vocab.json
+#
+# data_prep.py builds vocab.json from data_train and filters data_val/data_test to that vocab.
+# extraction.py checks all splits against vocab.json before model extraction.
+datasets:
+  - path: "datasets/c2s_datasets/purified-pbmc-subset-2"

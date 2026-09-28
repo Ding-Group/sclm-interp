@@ -1,0 +1,107 @@
+# Data preparation configuration for C2S Arrow dataset creation.
+#
+# Run:
+#   python -m src.data.data_prep
+#   python -m src.data.data_prep --config configs/data_prep.yaml
+#   python -m src.data.data_prep --dataset purified_pbmc
+#   python -m src.data.data_prep --dataset pbmc
+#   python -m src.data.data_prep --no-umap
+
+# ── Dataset selection ─────────────────────────────────────────────────────────
+# Choose which dataset to process:
+# "cross_tissue_immune_cell_atlas", "purified_pbmc", or "pbmc"
+dataset: "pbmc"
+
+# Seed used for cell subsetting, C2S conversion, train/validation/test split, and UMAP preview.
+seed: 1234
+
+# ── Dataset configs ───────────────────────────────────────────────────────────
+# Paths are relative to the project root (directory containing pyproject.toml).
+dataset_configs:
+  cross_tissue_immune_cell_atlas:
+    data_path: "raw_datasets/cross-tissue_immune_cell_atlas.h5ad"
+    save_dir: "datasets/c2s_datasets"
+    save_name: "cross-tissue-immune-cell-atlas"
+    # donor_subset selects donors from obs['Donor'].
+    # Available donor_subset values:
+    #   582C, 621B, 637C, 640C, A29, A31, A35, A36, A37, A52, D496, D503
+    # examples:
+    #   donor_subset: ["A29", "A31"]
+    donor_subset: ["A29"] # null
+    # cell_subset selects cell types from obs['Manually_curated_celltype'].
+    # Available cell_subset values:
+    #   ABCs, Alveolar macrophages, Classical monocytes, Cycling, Cycling T&NK, DC1, DC2
+    #   Erythroid, Erythrophagocytic macrophages, GC_B (I), GC_B (II), ILC3
+    #   Intermediate macrophages, Intestinal macrophages, MAIT, MNP/B doublets, MNP/T doublets
+    #   Mast cells, Megakaryocytes, Memory B cells, NK_CD16+, NK_CD56bright_CD16-
+    #   Naive B cells, Nonclassical monocytes, Plasma cells, Plasmablasts, Pre-B, Pro-B
+    #   Progenitor, T/B doublets, T_CD4/CD8, Teffector/EM_CD4, Tem/emra_CD8, Tfh
+    #   Tgd_CRTAM+, Tnaive/CM_CD4, Tnaive/CM_CD4_activated, Tnaive/CM_CD8, Tregs
+    #   Trm/em_CD8, Trm_Tgd, Trm_Th1/Th17, Trm_gut_CD8, migDC, pDC
+    # examples:
+    #   cell_subset: ["DC1", "DC2", "pDC"]
+    #   cell_subset_n: 1000  # up to 1,000 cells per selected cell type
+    cell_subset: ["DC1", "DC2"] # null
+    cell_subset_n: 100 # null
+
+  purified_pbmc:
+    # If data_path does not exist, it is auto-downloaded via scvi-tools.
+    data_path: "raw_datasets/PurifiedPBMCDataset.h5ad"
+    save_dir: "datasets/c2s_datasets"
+    save_name: "purified-pbmc-subset-full"
+    # 11 batches (integer IDs):  0=cd4_t_helper  1=regulatory_t   2=naive_t
+    #                            3=memory_t      4=cytotoxic_t    5=naive_cytotoxic
+    #                            6=b_cells       7=cd4_t_helper   8=cd34
+    #                            9=cd56_nk       10=cd14_monocytes
+    # (batches 0 and 7 are both cd4_t_helper — two independent runs)
+    # omit cell_subset (or leave null) to use all 11 batches
+    # examples:
+    #   cell_subset: [6, 9, 10]   # b_cells, cd56_nk, cd14_monocytes
+    cell_subset: [4, 2, 3] # null
+    cell_subset_n: null   # randomly sample this many cells per batch
+
+  pbmc:
+    # If data_path does not exist, it is auto-downloaded via scvi.data.pbmc_dataset.
+    # Note: this dataset is indexed by Ensembl IDs and restricted to a 3,346-gene
+    # panel with no MT- genes, so data_prep remaps var_names to the symbols in
+    # var['gene_symbols'] and the mt_threshold filter is inert here.
+    data_path: "raw_datasets/PBMCDataset.h5ad"
+    save_dir: "datasets/c2s_datasets"
+    save_name: "pbmc-subset-full"
+    # Two source datasets with cell-type metadata in obs['str_labels'].
+    # dataset_subset selects source dataset batch IDs:
+    #   0=PBMC 8K, 1=PBMC 4K
+    # examples:
+    #   dataset_subset: [0]      # PBMC 8K only
+    #   dataset_subset: [1]      # PBMC 4K only
+    #   dataset_subset: [0, 1]   # both source datasets
+    dataset_subset: [0, 1]
+    # cell_subset selects cell types from obs['str_labels']. data_prep rewrites
+    # the raw 10x display labels ("CD14+ Monocytes") as subset-style names, so
+    # both spellings are accepted here and cell types are saved as the names below.
+    # Available cell_subset values:
+    #   B_cells, cd14_monocytes, CD4_T_cells, CD8_T_cells, dendritic_cells
+    #   fcgr3a_monocytes, megakaryocytes, NK_cells, other
+    # omit cell_subset (or leave null) to use all cell types.
+    # examples:
+    #   cell_subset: ["B_cells", "NK_cells"]
+    #   cell_subset: ["CD4_T_cells", "cd14_monocytes"]
+    cell_subset: ["B_cells", "cd14_monocytes", "NK_cells"]
+    cell_subset_n: null  # randomly sample this many cells per cell type
+
+# ── Train / validation / test split ───────────────────────────────────────────
+split:
+  val_fraction: 0.1    # saved as data_val
+  test_fraction: 0.1   # saved as data_test; remaining cells are saved as data_train
+
+# ── Quality-control filtering ─────────────────────────────────────────────────
+filtering:
+  min_genes: 200        # minimum detected genes per cell
+  max_genes: 2000       # maximum detected genes per cell (doublet guard)
+  min_cells: 3          # minimum cells a gene must appear in
+  mt_threshold: 20.0    # maximum % mitochondrial counts (dead-cell filter)
+
+# ── Optional processing ───────────────────────────────────────────────────────
+processing:
+  generate_preview: true  # write filtered preview plots and dataset_summary.txt
+  run_umap: true          # only used when generate_preview=true; slow

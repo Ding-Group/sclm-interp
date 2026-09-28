@@ -1,0 +1,3 @@
+Examine the top {num_genes} genes ordered by descending expression level in {num_cells} {organism} {cell_noun}. Based on this information, generate an abstract summary which summarizes the biological insights contained in {cell_reference}.
+{cells}
+Abstract summary:

@@ -1,0 +1,61 @@
+# Cell-type SAE feature analysis configuration.
+# Run with: .venv/bin/python src/evaluate/cell_feature_analysis.py
+
+data:
+  # Parent directory containing data_train/data_val/data_test cell shards.
+  cells_dir: "datasets/cells/C2S-Scale-Gemma-2-27B/layer20/purified-pbmc-subset-2/cell_activations_last_no_prefix"
+  # Set to null to discover and combine every available split.
+  splits:
+    - data_train
+    - data_val
+    - data_test
+
+checkpoint:
+  # Must match the cell activation layer, pooling method, and prefix setting.
+  path: "checkpoints/gemma-27b/layer20_topk_exp8_last_no_prefix_23/gemma-27b-layer20-last-topk-sae-epoch009-step7490.ckpt"
+
+analysis:
+  # Number of positive specificity-margin features written per cell type.
+  top_n: 50
+  # Compute one-vs-rest AUROC per feature. Disable to skip retaining non-zero
+  # activations, which is the memory-heavy part of the rank statistics.
+  auroc: true
+  # A feature counts as active when its SAE value is above this threshold.
+  activation_threshold: 0.0
+
+infrastructure:
+  batch_size: 256
+  device: auto  # "auto" | "cpu" | "cuda"
+
+figures:
+  generate: true
+  # Features shown per cell type in the ranked bar chart and scatter highlights.
+  top_n: 15
+  # Features shown per cell type in the normalized activation heatmap.
+  heatmap_top_n: 10
+  # Perceptually uniform palette with power scaling for smoother low/mid values.
+  heatmap_cmap: "viridis"
+  heatmap_gamma: 0.65
+  dpi: 180
+
+gene_analysis:
+  enabled: true
+  # The matching lookup is resolved as:
+  # <results_dir>/<sae_name>/<dataset_name>/<base_model_name>/feature_to_genes.jsonl
+  results_dir: "results/gene_features_27b"
+  # Optional exact lookup override; null uses the hierarchy above.
+  feature_to_genes: null
+  # null infers C2S-Scale-* from the datasets/cells path.
+  base_model_name: null
+  # Analyze this many ranked cell-type features and retain this many genes each.
+  top_features_per_cell_type: 15
+  top_genes_per_feature: 10
+
+output:
+  # Results are written to <dir>/<sae_name>/<dataset_name>/.
+  dir: "results/cell_type_features_27b"
+  # null infers the SAE name from the checkpoint's parent directory.
+  sae_name: null
+  # null infers the dataset name from data.cells_dir, falling back to the
+  # checkpoint's recorded training dataset.
+  dataset_name: null
