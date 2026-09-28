@@ -35,9 +35,7 @@ The main experiments study **C2S Gemma-2-2B at layers 10, 15, and 20**, with an 
 
 ## Data and scope
 
-The study focuses on **B cells, CD14 monocytes, and CD56 natural killer cells**. SAEs are trained on purified PBMC data; PBMC-4k and PBMC-8k provide an external evaluation corpus. The gene vocabulary is built from each prepared dataset's training split, with vocabulary checks applied before activation extraction.
-
-The findings concern the evaluated immune populations and model predictions. Feature steering changes generated annotations; it does not establish a biological perturbation effect. Broader cell populations, finer distinctions between related cell types, and perturbation-response prediction remain directions for future work.
+The study focuses on **B cells, CD14 monocytes, and CD56 natural killer cells**. SAEs are trained on purified PBMC data; PBMC-4k and PBMC-8k provide an external evaluation corpus. The gene vocabulary is built from each prepared dataset's training split, with vocabulary checks applied before activation extraction. The findings concern the evaluated immune populations and model predictions. Broader cell populations, finer distinctions between related cell types, and perturbation-response prediction remain directions for future work.
 
 ## Repository guide
 
